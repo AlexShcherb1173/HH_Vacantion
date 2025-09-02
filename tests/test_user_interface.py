@@ -6,62 +6,7 @@
 # Тест проверяет фильтрацию, создание папки и сохранение файла.
 # Создание папки data, если её нет.
 
-# import pytest
-# from unittest.mock import patch
-# from src.user_interface import user_interaction, DATA_FOLDER
-# from src.work_files import JSONHandler
-# import os
-# import shutil
-#
-# @pytest.fixture(autouse=True)
-# def cleanup_data_folder():
-#     """Очистка папки data перед тестом и после"""
-#     if os.path.exists(DATA_FOLDER):
-#         shutil.rmtree(DATA_FOLDER)
-#     os.makedirs(DATA_FOLDER, exist_ok=True)
-#     yield
-#     if os.path.exists(DATA_FOLDER):
-#         shutil.rmtree(DATA_FOLDER)
-#
-# def test_user_interaction(monkeypatch):
-#     # Мокаем ввод пользователя
-#     inputs = iter([
-#         "Python Developer",  # поисковый запрос
-#         "2",                 # топ N
-#         "backend",           # ключевые слова
-#         "100000-200000"      # диапазон зарплаты
-#     ])
-#     monkeypatch.setattr('builtins.input', lambda _: next(inputs))
-#
-#     # Мокаем HHAPI.get_vacancies чтобы не ходить в реальный API
-#     with patch('src.get_api.HHAPI.get_vacancies') as mock_get:
-#         mock_get.return_value = [
-#             {
-#                 "name": "Python Developer",
-#                 "area": {"name": "Москва"},
-#                 "published_at": "2025-09-02T12:00:00Z",
-#                 "alternate_url": "https://hh.ru/vacancy/1",
-#                 "salary": {"from": 150000, "to": 200000, "currency": "RUR"},
-#                 "snippet": {"requirement": "Разработка backend"}
-#             },
-#             {
-#                 "name": "Junior Developer",
-#                 "area": {"name": "Санкт-Петербург"},
-#                 "published_at": "2025-09-01T12:00:00Z",
-#                 "alternate_url": "https://hh.ru/vacancy/2",
-#                 "salary": {"from": 90000, "to": 120000, "currency": "RUR"},
-#                 "snippet": {"requirement": "Разработка frontend"}
-#             }
-#         ]
-#
-#         # Мокаем JSONHandler.add_items чтобы проверить создание файла
-#         with patch.object(JSONHandler, 'add_items', wraps=JSONHandler(os.path.join(DATA_FOLDER, "vacancies.json")).add_items) as mock_add:
-#             user_interaction()
-#             assert mock_get.called
-#             assert mock_add.called
-#             # Проверяем, что файл создался
-#             json_file_path = os.path.join(DATA_FOLDER, "vacancies.json")
-#             assert os.path.exists(json_file_path)
+
 import pytest
 from unittest.mock import patch
 from src.user_interface import user_interaction, DATA_FOLDER
