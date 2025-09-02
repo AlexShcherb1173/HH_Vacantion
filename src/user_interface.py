@@ -33,7 +33,7 @@ def convert_api_to_vacancy(item: dict) -> Vacancy:
     )
 
 
-def display_vacancy(vac: Vacancy):
+def display_vacancy(vac: Vacancy) -> None:
     print(f"Название: {vac.title}")
     print(f"Локация: {vac.location}")
     print(f"Дата публикации: {vac.published_at.strftime('%Y-%m-%d %H:%M')}")
@@ -43,7 +43,11 @@ def display_vacancy(vac: Vacancy):
     print("-" * 40)
 
 
-def user_interaction():
+def user_interaction() -> None:
+    """Функция взаимодействия с пользователем.
+        - Запрос вакансий
+        - Топ N по зарплате
+        - Фильтрация по ключевым словам и локации"""
     print("=== Платформа: HeadHunter ===")
     search_query = input("Введите поисковый запрос: ").strip()
     if not search_query:
@@ -56,10 +60,17 @@ def user_interaction():
     filter_words = input("Введите ключевые слова для фильтрации вакансий (через пробел): ").split()
     location_filter = input("Введите локацию для фильтрации вакансий (оставьте пустым для пропуска): ").strip()
 
-    salary_range_input = input("Введите диапазон зарплат (пример: 100000-150000, оставьте пустым для пропуска): ").strip()
+    salary_range_input = input(
+        "Введите диапазон зарплат (пример: 100000-150000, оставьте пустым для пропуска): "
+    ).strip()
+
     if salary_range_input:
         try:
-            min_salary, max_salary = map(int, salary_range_input.split("-"))
+            parts = salary_range_input.split("-")
+            if len(parts) != 2:
+                raise ValueError
+            min_salary, max_salary = map(lambda x: int(x.strip()), parts)
+            print(f"Выбран диапазон: {min_salary} - {max_salary}")
         except ValueError:
             print("Некорректный формат диапазона зарплат")
             min_salary, max_salary = None, None

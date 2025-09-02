@@ -1,33 +1,63 @@
 # Общие функции вынесены в services.py.
-# Дубли удаляются через remove_duplicates (ключ по url).
-# Фильтрация данных через filter_items.
-
-from typing import List, Dict, Any
-
-
-def remove_duplicates(existing: List[Dict[str, Any]], new_items: List[Dict[str, Any]], key: str = "url") -> List[
-    Dict[str, Any]]:
-    """
-    Убирает дубли из списка словарей по указанному ключу.
-
-    :param existing: Существующие данные.
-    :param new_items: Новые данные для добавления.
-    :param key: Ключ для определения уникальности.
-    :return: Список новых элементов без дубликатов.
-    """
-    existing_keys = {item[key] for item in existing}
-    return [item for item in new_items if item[key] not in existing_keys]
+# Дубли удаляются через remove_duplicates принимает три параметра: существующие элементы, новые элементы и
+# ключ для сравнения(ключ по url).
+# Работает для JSON, CSV, XLSX, TXT.
+# Убирает дубликаты по ключу url (или любому другому).
+# Если key=None, проверяет весь словарь.
+# Фильтрация данных через filter_items по любым критериям и поддерживает сравнение с
+# множеством значений (list, tuple, set)..
+# Оба метода типизированы и документированы.
 
 
-def filter_items(items: List[Dict[str, Any]], criteria: dict) -> List[Dict[str, Any]]:
-    """
-    Фильтрует список словарей по заданным критериям.
 
-    :param items: Список словарей.
-    :param criteria: Словарь с ключом-значением для фильтрации.
-    :return: Отфильтрованный список словарей.
-    """
-    filtered = items
-    for k, v in criteria.items():
-        filtered = [item for item in filtered if item.get(k) == v]
+from typing import List, Dict, Optional, Any
+
+
+def remove_duplicates(existing: List[Dict[str, Any]], new_items: List[Dict[str, Any]], key: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Объединяет два списка словарей, убирая дубликаты по ключу `key`.
+    Если key=None, сравнивает полностью словарь."""
+    seen = set()
+    result = []
+
+    # Добавляем существующие элементы
+    for item in existing:
+        identifier = item.get(key) if key else tuple(sorted(item.items()))
+        if identifier not in seen:
+            seen.add(identifier)
+            result.append(item)
+
+    # Добавляем новые элементы
+    for item in new_items:
+        identifier = item.get(key) if key else tuple(sorted(item.items()))
+        if identifier not in seen:
+            seen.add(identifier)
+            result.append(item)
+
+    return result
+
+
+def filter_items(items: List[Dict], criteria: Optional[Dict] = None) -> List[Dict]:
+    """Фильтрует список словарей по заданным критериям.
+    :param items: список словарей
+    :param criteria: словарь критериев фильтрации
+    :return: отфильтрованный список словарей"""
+    if not criteria:
+        return items
+    filtered = []
+    for item in items:
+        match = True
+        for key, value in criteria.items():
+            if key not in item:
+                match = False
+                break
+            if isinstance(value, (list, tuple, set)):
+                if item[key] not in value:
+                    match = False
+                    break
+            else:
+                if item[key] != value:
+                    match = False
+                    break
+        if match:
+            filtered.append(item)
     return filtered

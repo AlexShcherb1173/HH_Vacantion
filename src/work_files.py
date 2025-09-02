@@ -3,181 +3,205 @@
 # Наследники для JSON, CSV, XLSX, TXT.
 # Не перезаписываются данные, добавляются новые вакансии.
 # Приватный атрибут файла с именем, есть значение по умолчанию.
+# Везде используется remove_duplicates(current, items, key="url").
+# Файлы создаются при необходимости (_ensure_file или проверка os.path.exists).
+# Данные корректно сохраняются и читаются для всех форматов: JSON, CSV, XLSX, TXT.
+# Методы delete_items удаляют элементы по критериям и перезаписывают файл.
 
 
-from abc import ABC, abstractmethod
-from typing import List, Dict, Any
 import json
 import csv
-import os
+from pathlib import Path
+from abc import ABC, abstractmethod
 from openpyxl import Workbook, load_workbook
-from src.services import remove_duplicates, filter_items
+from typing import List, Dict, Optional, Any
+from src.services import remove_duplicates
 
-
+# ------------------ Абстрактный класс ------------------
 class FileHandler(ABC):
-    """Абстрактный класс для работы с файлами."""
+    """Абстрактный класс для работы с файлами вакансий."""
+    def __init__(self, filename: Optional[str] = None) -> None:
+        """:param filename: Имя файла"""
+        self.__filename = filename or "data/vacancies_data"
+        Path(self.__filename).parent.mkdir(exist_ok=True, parents=True)
 
     @abstractmethod
-    def add_items(self, items: List[Dict[str, Any]]) -> None:
-        """Добавление данных в файл."""
-        pass
-
+    def add_items(self, items: List[Dict[str, Any]]) -> None: ...
+    """Добавляет вакансии в файл."""
     @abstractmethod
-    def get_items(self, criteria: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        """Получение данных из файла по критериям."""
-        pass
-
+    def get_items(self, criteria: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]: ...
+    """Возвращает вакансии из файла с возможной фильтрацией."""
     @abstractmethod
-    def delete_items(self, criteria: Dict[str, Any]) -> None:
-        """Удаление данных из файла по критериям."""
-        pass
-
-
-# -------------------- JSON --------------------
+    def delete_items(self, criteria: Optional[Dict[str, Any]] = None) -> None: ...
+    """Удаляет вакансии из файла по критериям."""
+# ------------------ JSON ------------------
 class JSONHandler(FileHandler):
-    def __init__(self, filename: str = "vacancies.json") -> None:
-        self.__filename = filename
+    """Работа с JSON-файлом вакансий."""
+    def _ensure_file(self) -> None:
+        if not Path(self._FileHandler__filename).exists():
+            with open(self._FileHandler__filename, "w", encoding="utf-8") as f:
+                json.dump([], f, ensure_ascii=False, indent=4)
 
     def add_items(self, items: List[Dict[str, Any]]) -> None:
-        data = self.get_items() or []
-        items_to_add = remove_duplicates(data, items, key="url")
-        data.extend(items_to_add)
-        with open(self.__filename, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
+        self._ensure_file()
+        current = self.get_items()
+        combined = remove_duplicates(current, items, key="url")
+        with open(self._FileHandler__filename, "w", encoding="utf-8") as f:
+            json.dump(combined, f, ensure_ascii=False, indent=4)
 
-    def get_items(self, criteria: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        if not os.path.exists(self.__filename):
-            return []
-        with open(self.__filename, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if criteria:
-            data = filter_items(data, criteria)
-        return data
+    def get_items(self, criteria: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        self._ensure_file()
+        with open(self._FileHandler__filename, "r", encoding="utf-8") as f:
+            items = json.load(f)
+        return _filter_items(items, criteria)
 
-    def delete_items(self, criteria: Dict[str, Any]) -> None:
-        data = self.get_items()
-        data = [item for item in data if not all(item.get(k) == v for k, v in criteria.items())]
-        with open(self.__filename, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
+    def delete_items(self, criteria: Optional[Dict[str, Any]] = None) -> None:
+        items = self.get_items()
+        remaining = _remove_items(items, criteria)
+        with open(self._FileHandler__filename, "w", encoding="utf-8") as f:
+            json.dump(remaining, f, ensure_ascii=False, indent=4)
 
-
-# -------------------- CSV --------------------
+# ------------------ CSV ------------------
 class CSVHandler(FileHandler):
-    def __init__(self, filename: str = "vacancies.csv") -> None:
-        self.__filename = filename
-
-    def add_items(self, items: List[Dict[str, Any]]) -> None:
-        existing = self.get_items() or []
-        items_to_add = remove_duplicates(existing, items, key="url")
-        if not items_to_add:
-            return
-        file_exists = os.path.exists(self.__filename)
-        with open(self.__filename, "a", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=items_to_add[0].keys())
-            if not file_exists:
+    def _ensure_file(self):
+        if not Path(self._FileHandler__filename).exists():
+            with open(self._FileHandler__filename, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=["title","location","published_at","url","salary","description"])
                 writer.writeheader()
-            for item in items_to_add:
-                writer.writerow(item)
 
-    def get_items(self, criteria: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        if not os.path.exists(self.__filename):
-            return []
-        with open(self.__filename, "r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            data = [row for row in reader]
-        if criteria:
-            data = filter_items(data, criteria)
-        return data
-
-    def delete_items(self, criteria: Dict[str, Any]) -> None:
-        data = self.get_items()
-        data = [item for item in data if not all(item.get(k) == v for k, v in criteria.items())]
-        if not data:
-            open(self.__filename, "w").close()
-            return
-        with open(self.__filename, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=data[0].keys())
+    def add_items(self, items: List[Dict[str, Any]]):
+        self._ensure_file()
+        current = self.get_items()
+        combined = remove_duplicates(current, items, key="url")
+        with open(self._FileHandler__filename, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=["title","location","published_at","url","salary","description"])
             writer.writeheader()
-            writer.writerows(data)
+            writer.writerows(combined)
 
+    def get_items(self, criteria: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        self._ensure_file()
+        with open(self._FileHandler__filename, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            items = list(reader)
+        return _filter_items(items, criteria)
 
-# -------------------- XLSX --------------------
+    def delete_items(self, criteria: Optional[Dict[str, Any]] = None):
+        items = self.get_items()
+        remaining = _remove_items(items, criteria)
+        with open(self._FileHandler__filename, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=["title","location","published_at","url","salary","description"])
+            writer.writeheader()
+            writer.writerows(remaining)
+
+# ------------------ XLSX ------------------
 class XLSXHandler(FileHandler):
-    def __init__(self, filename: str = "vacancies.xlsx") -> None:
-        self.__filename = filename
-
-    def add_items(self, items: List[Dict[str, Any]]) -> None:
-        if os.path.exists(self.__filename):
-            wb = load_workbook(self.__filename)
-            ws = wb.active
-            existing = [dict(zip([c.value for c in ws[1]], [cell.value for cell in row])) for row in ws.iter_rows(min_row=2)]
-        else:
+    def _ensure_file(self):
+        if not Path(self._FileHandler__filename).exists():
             wb = Workbook()
             ws = wb.active
-            ws.append(list(items[0].keys()))
-            existing = []
+            ws.append(["title","location","published_at","url","salary","description"])
+            wb.save(self._FileHandler__filename)
 
-        items_to_add = remove_duplicates(existing, items, key="url")
-        for item in items_to_add:
-            ws.append(list(item.values()))
-        wb.save(self.__filename)
-
-    def get_items(self, criteria: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        if not os.path.exists(self.__filename):
-            return []
-        wb = load_workbook(self.__filename)
-        ws = wb.active
-        keys = [cell.value for cell in ws[1]]
-        data = [dict(zip(keys, [cell.value for cell in row])) for row in ws.iter_rows(min_row=2)]
-        if criteria:
-            data = filter_items(data, criteria)
-        return data
-
-    def delete_items(self, criteria: Dict[str, Any]) -> None:
-        data = self.get_items()
-        data = [item for item in data if not all(item.get(k) == v for k, v in criteria.items())]
-        if not data:
-            open(self.__filename, "w").close()
-            return
+    def add_items(self, items: List[Dict[str, Any]]):
+        self._ensure_file()
+        current = self.get_items()
+        combined = remove_duplicates(current, items, key="url")
         wb = Workbook()
         ws = wb.active
-        ws.append(list(data[0].keys()))
-        for item in data:
-            ws.append(list(item.values()))
-        wb.save(self.__filename)
+        ws.append(["title","location","published_at","url","salary","description"])
+        for item in combined:
+            ws.append([item.get(f, "") for f in ["title","location","published_at","url","salary","description"]])
+        wb.save(self._FileHandler__filename)
 
+    def get_items(self, criteria: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        self._ensure_file()
+        wb = load_workbook(self._FileHandler__filename)
+        ws = wb.active
+        rows = list(ws.values)
+        keys = rows[0]
+        items = [dict(zip(keys, row)) for row in rows[1:]]
+        return _filter_items(items, criteria)
 
-# -------------------- TXT --------------------
+    def delete_items(self, criteria: Optional[Dict[str, Any]] = None):
+        items = self.get_items()
+        remaining = _remove_items(items, criteria)
+        wb = Workbook()
+        ws = wb.active
+        ws.append(["title","location","published_at","url","salary","description"])
+        for item in remaining:
+            ws.append([item.get(f, "") for f in ["title","location","published_at","url","salary","description"]])
+        wb.save(self._FileHandler__filename)
+
+# ------------------ TXT ------------------
 class TXTHandler(FileHandler):
-    def __init__(self, filename: str = "vacancies.txt") -> None:
-        self.__filename = filename
+    def _ensure_file(self):
+        Path(self._FileHandler__filename).touch(exist_ok=True)
 
-    def add_items(self, items: List[Dict[str, Any]]) -> None:
-        existing = self.get_items() or []
-        items_to_add = remove_duplicates(existing, items, key="url")
-        if not items_to_add:
-            return
-        with open(self.__filename, "a", encoding="utf-8") as f:
-            for item in items_to_add:
-                f.write(str(item) + "\n")
+    def add_items(self, items: List[Dict[str, Any]]):
+        self._ensure_file()
+        current = self.get_items()
+        combined = remove_duplicates(current, items, key="url")
+        with open(self._FileHandler__filename, "w", encoding="utf-8") as f:
+            for item in combined:
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
 
-    def get_items(self, criteria: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        if not os.path.exists(self.__filename):
-            return []
-        data = []
-        with open(self.__filename, "r", encoding="utf-8") as f:
+    def get_items(self, criteria: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        self._ensure_file()
+        items = []
+        with open(self._FileHandler__filename, "r", encoding="utf-8") as f:
             for line in f:
-                try:
-                    data.append(eval(line.strip()))
-                except Exception:
-                    continue
-        if criteria:
-            data = filter_items(data, criteria)
-        return data
+                if line.strip():
+                    items.append(json.loads(line.strip()))
+        return _filter_items(items, criteria)
 
-    def delete_items(self, criteria: Dict[str, Any]) -> None:
-        data = self.get_items()
-        data = [item for item in data if not all(item.get(k) == v for k, v in criteria.items())]
-        with open(self.__filename, "w", encoding="utf-8") as f:
-            for item in data:
-                f.write(str(item) + "\n")
+    def delete_items(self, criteria: Optional[Dict[str, Any]] = None):
+        items = self.get_items()
+        remaining = _remove_items(items, criteria)
+        with open(self._FileHandler__filename, "w", encoding="utf-8") as f:
+            for item in remaining:
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
+
+# ------------------ Вспомогательные функции ------------------
+def _filter_items(items: List[Dict[str, Any]], criteria: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    if not criteria:
+        return items
+    result = []
+    for item in items:
+        match = True
+        for k, v in criteria.items():
+            val = item.get(k)
+            if isinstance(v, (list, tuple, set)):
+                if str(val) not in map(str, v):
+                    match = False
+                    break
+            else:
+                if str(val) != str(v):
+                    match = False
+                    break
+        if match:
+            result.append(item)
+    return result
+
+def _remove_items(items: List[Dict[str, Any]], criteria: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    if not criteria:
+        return []
+    remaining = []
+    for item in items:
+        remove = True
+        for k, v in criteria.items():
+            val = item.get(k)
+            if isinstance(v, (list, tuple, set)):
+                if str(val) in map(str, v):
+                    continue
+                else:
+                    remove = False
+                    break
+            else:
+                if str(val) == str(v):
+                    continue
+                else:
+                    remove = False
+                    break
+        if not remove:
+            remaining.append(item)
+    return remaining

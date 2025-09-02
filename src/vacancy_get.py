@@ -10,7 +10,7 @@ from typing import Union
 
 
 class Vacancy:
-    """Класс для представления вакансии."""
+    """Класс, представляющий вакансию с основными атрибутами и сравнением по зарплате."""
 
     __slots__ = (
         "__title",
@@ -21,6 +21,7 @@ class Vacancy:
         "__description",
     )
 
+
     def __init__(
         self,
         title: str,
@@ -29,7 +30,14 @@ class Vacancy:
         url: str,
         salary: Union[int, None],
         description: str,
-    ):
+    ) -> None:
+        """ Инициализация вакансии.
+                    :param title: Название вакансии
+                    :param location: Локация вакансии
+                    :param published_at: Дата публикации в формате ISO
+                    :param url: Ссылка на вакансию
+                    :param salary: Зарплата (если не указана, 0)
+                    :param description: Краткое описание вакансии"""
         self.__title = self.__validate_title(title)
         self.__location = self.__validate_location(location)
         self.__published_at = self.__validate_date(published_at)
@@ -40,27 +48,32 @@ class Vacancy:
     # ================= Валидация =================
 
     def __validate_title(self, value: str) -> str:
+        """Проверка и нормализация названия вакансии."""
         if not value or not isinstance(value, str):
             raise ValueError("Название вакансии должно быть строкой и не пустым")
         return value.strip()
 
     def __validate_location(self, value: str) -> str:
+        """Проверка и нормализация локации вакансии."""
         if not value or not isinstance(value, str):
             return "Не указано"
         return value.strip()
 
     def __validate_date(self, value: str) -> datetime:
+        """Проверка и нормализация даты вакансии."""
         try:
             return datetime.fromisoformat(value.replace("Z", "+00:00"))
         except Exception:
             raise ValueError("Некорректная дата публикации вакансии")
 
     def __validate_url(self, value: str) -> str:
+        """Проверка и нормализация ссылки на вакансию."""
         if not isinstance(value, str) or not value.startswith("http"):
             raise ValueError("Некорректная ссылка на вакансию")
         return value
 
     def __validate_salary(self, value: Union[int, None]) -> int:
+        """Проверка и нормализация значения зарплаты."""
         if value is None:
             return 0
         if not isinstance(value, (int, float)) or value < 0:
@@ -68,6 +81,7 @@ class Vacancy:
         return int(value)
 
     def __validate_description(self, value: str) -> str:
+        """Проверка и нормализация описания вакансии."""
         if not value or not isinstance(value, str):
             return "Описание не указано"
         return value.strip()
