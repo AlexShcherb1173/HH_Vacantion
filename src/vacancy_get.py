@@ -72,6 +72,17 @@ class Vacancy:
             return "Описание не указано"
         return value.strip()
 
+    def to_dict(self) -> dict:
+        """Возвращает словари всех атрибутов вакансии"""
+        return {
+            "title": self.title,
+            "location": self.location,
+            "published_at": self.published_at.isoformat(),
+            "url": self.url,
+            "salary": self.salary,
+            "description": self.description
+        }
+
     # ================= Свойства =================
 
     @property
