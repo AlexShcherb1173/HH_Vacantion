@@ -6,7 +6,7 @@
 # Если зарплата не указана — устанавливается 0.
 
 from datetime import datetime
-from typing import Union
+from typing import Optional, Union
 
 
 class Vacancy:
@@ -21,23 +21,22 @@ class Vacancy:
         "__description",
     )
 
-
     def __init__(
         self,
         title: str,
         location: str,
-        published_at: str,
-        url: str,
         salary: Union[int, None],
         description: str,
+        published_at: Optional[str] = None,
+        url: Optional[str] = None,
     ) -> None:
-        """ Инициализация вакансии.
-                    :param title: Название вакансии
-                    :param location: Локация вакансии
-                    :param published_at: Дата публикации в формате ISO
-                    :param url: Ссылка на вакансию
-                    :param salary: Зарплата (если не указана, 0)
-                    :param description: Краткое описание вакансии"""
+        """Инициализация вакансии.
+        :param title: Название вакансии
+        :param location: Локация вакансии
+        :param published_at: Дата публикации в формате ISO
+        :param url: Ссылка на вакансию
+        :param salary: Зарплата (если не указана, 0)
+        :param description: Краткое описание вакансии"""
         self.__title = self.__validate_title(title)
         self.__location = self.__validate_location(location)
         self.__published_at = self.__validate_date(published_at)
@@ -59,14 +58,16 @@ class Vacancy:
             return "Не указано"
         return value.strip()
 
-    def __validate_date(self, value: str) -> datetime:
+    def __validate_date(self, value: Optional[str]) -> datetime:
         """Проверка и нормализация даты вакансии."""
+        if value is None:
+            raise ValueError("Дата вакансии отсутствует")
         try:
             return datetime.fromisoformat(value.replace("Z", "+00:00"))
         except Exception:
             raise ValueError("Некорректная дата публикации вакансии")
 
-    def __validate_url(self, value: str) -> str:
+    def __validate_url(self, value: Optional[str]) -> str:
         """Проверка и нормализация ссылки на вакансию."""
         if not isinstance(value, str) or not value.startswith("http"):
             raise ValueError("Некорректная ссылка на вакансию")
@@ -94,7 +95,7 @@ class Vacancy:
             "published_at": self.published_at.isoformat(),
             "url": self.url,
             "salary": self.salary,
-            "description": self.description
+            "description": self.description,
         }
 
     # ================= Свойства =================
@@ -153,7 +154,4 @@ class Vacancy:
     # ================= Представление =================
 
     def __repr__(self) -> str:
-        return (
-            f"Vacancy(title={self.title!r}, salary={self.salary}, "
-            f"location={self.location!r}, url={self.url!r})"
-        )
+        return f"Vacancy(title={self.title!r}, salary={self.salary}, " f"location={self.location!r}, url={self.url!r})"

@@ -9,14 +9,18 @@
 # Создание объектов Vacancy через конвертер convert_api_to_vacancy.
 #
 
-import pytest
 from datetime import datetime
-from unittest.mock import patch, MagicMock
+from typing import Any
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 from src.get_api import HHAPI
 from src.vacancy_get import Vacancy
 
+
 @pytest.fixture
-def fake_api_response():
+def fake_api_response() -> list[dict[str, Any]]:
     """Фейковые данные, которые возвращает hh.ru API"""
     return [
         {
@@ -40,14 +44,14 @@ def fake_api_response():
     ]
 
 
-def test_vacancy_creation_valid():
+def test_vacancy_creation_valid() -> None:
     vac = Vacancy(
         title="Python Developer",
         location="Москва",
         published_at="2025-09-02T12:00:00Z",
         url="https://hh.ru/vacancy/123",
         salary=150000,
-        description="Разработка backend"
+        description="Разработка backend",
     )
     assert vac.title == "Python Developer"
     assert vac.location == "Москва"
@@ -57,20 +61,20 @@ def test_vacancy_creation_valid():
     assert vac.description == "Разработка backend"
 
 
-def test_vacancy_salary_none():
+def test_vacancy_salary_none() -> None:
     vac = Vacancy(
         title="Junior Developer",
         location="Санкт-Петербург",
         published_at="2025-09-02T12:00:00Z",
         url="https://hh.ru/vacancy/456",
         salary=None,
-        description="Тестовое описание"
+        description="Тестовое описание",
     )
     # Зарплата по умолчанию 0
     assert vac.salary == 0
 
 
-def test_vacancy_invalid_title():
+def test_vacancy_invalid_title() -> None:
     with pytest.raises(ValueError):
         Vacancy(
             title="",
@@ -78,11 +82,11 @@ def test_vacancy_invalid_title():
             published_at="2025-09-02T12:00:00Z",
             url="https://hh.ru/vacancy/123",
             salary=100000,
-            description="Описание"
+            description="Описание",
         )
 
 
-def test_vacancy_invalid_url():
+def test_vacancy_invalid_url() -> None:
     with pytest.raises(ValueError):
         Vacancy(
             title="Python Developer",
@@ -90,18 +94,18 @@ def test_vacancy_invalid_url():
             published_at="2025-09-02T12:00:00Z",
             url="ftp://bad-url",
             salary=100000,
-            description="Описание"
+            description="Описание",
         )
 
 
-def test_vacancy_comparison():
+def test_vacancy_comparison() -> None:
     vac1 = Vacancy(
         title="Vac1",
         location="Москва",
         published_at="2025-09-02T12:00:00Z",
         url="https://hh.ru/vacancy/1",
         salary=100000,
-        description="Desc1"
+        description="Desc1",
     )
     vac2 = Vacancy(
         title="Vac2",
@@ -109,7 +113,7 @@ def test_vacancy_comparison():
         published_at="2025-09-02T12:00:00Z",
         url="https://hh.ru/vacancy/2",
         salary=150000,
-        description="Desc2"
+        description="Desc2",
     )
 
     assert vac1 < vac2
@@ -122,7 +126,7 @@ def test_vacancy_comparison():
         published_at="2025-09-02T12:00:00Z",
         url="https://hh.ru/vacancy/3",
         salary=100000,
-        description="Desc3"
+        description="Desc3",
     )
 
     assert vac1 == vac3
@@ -130,18 +134,19 @@ def test_vacancy_comparison():
     assert vac1 >= vac3
 
 
-def test_vacancy_default_description_location():
+def test_vacancy_default_description_location() -> None:
     vac = Vacancy(
         title="Vacancy",
         location="",
         published_at="2025-09-02T12:00:00Z",
         url="https://hh.ru/vacancy/1",
         salary=None,
-        description=""
+        description="",
     )
     assert vac.description == "Описание не указано"
     assert vac.location == "Не указано"
     assert vac.salary == 0
+
 
 def convert_api_to_vacancy(item: dict) -> Vacancy:
     """Помощник для создания объекта Vacancy из данных API"""
@@ -149,17 +154,17 @@ def convert_api_to_vacancy(item: dict) -> Vacancy:
     salary = salary_data.get("from") if salary_data else None
 
     return Vacancy(
-        title=item.get("name"),
+        title=item.get("name") or "",
         location=item.get("area", {}).get("name", "Не указано"),
         published_at=item.get("published_at"),
         url=item.get("alternate_url"),
         salary=salary,
-        description=item.get("snippet", {}).get("requirement", "Описание не указано")
+        description=item.get("snippet", {}).get("requirement", "Описание не указано"),
     )
 
 
 @patch("src.get_api.requests.get")
-def test_hhapi_to_vacancy(mock_get, fake_api_response):
+def test_hhapi_to_vacancy(mock_get: MagicMock, fake_api_response: Any) -> None:
     """Интеграционный тест: получение вакансий из hh API и создание объектов Vacancy"""
     # Поддельные ответы API
     mock_response_connect = MagicMock()

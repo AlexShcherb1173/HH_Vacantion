@@ -9,11 +9,12 @@
 # Оба метода типизированы и документированы.
 
 
+from typing import Any, Dict, List, Optional
 
-from typing import List, Dict, Optional, Any
 
-
-def remove_duplicates(existing: List[Dict[str, Any]], new_items: List[Dict[str, Any]], key: Optional[str] = None) -> List[Dict[str, Any]]:
+def remove_duplicates(
+    existing: List[Dict[str, Any]], new_items: List[Dict[str, Any]], key: Optional[str] = None
+) -> List[Dict[str, Any]]:
     """Объединяет два списка словарей, убирая дубликаты по ключу `key`.
     Если key=None, сравнивает полностью словарь."""
     seen = set()

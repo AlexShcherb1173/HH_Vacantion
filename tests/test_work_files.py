@@ -7,6 +7,9 @@
 # Удаление вакансий проверяет, что все элементы с указанными критериями удалены.
 # Подходит для всех четырёх хэндлеров: JSON, CSV, XLSX, TXT.
 
+from pathlib import Path
+from typing import Type
+
 # import os
 # import pytest
 # from src.work_files import JSONHandler, CSVHandler, XLSXHandler, TXTHandler
@@ -72,7 +75,8 @@
 #     handler.delete_items(criteria={"salary": salary_criteria})
 #     assert handler.get_items() == []
 import pytest
-from src.work_files import JSONHandler, CSVHandler, XLSXHandler, TXTHandler
+
+from src.work_files import CSVHandler, FileHandler, JSONHandler, TXTHandler, XLSXHandler
 
 fake_vacancies = [
     {
@@ -81,7 +85,7 @@ fake_vacancies = [
         "published_at": "2025-09-01T12:00:00Z",
         "url": "https://hh.ru/vacancy/123",
         "salary": 150000,
-        "description": "Опыт разработки backend"
+        "description": "Опыт разработки backend",
     },
     {
         "title": "Junior Python Developer",
@@ -89,17 +93,21 @@ fake_vacancies = [
         "published_at": "2025-09-01T10:00:00Z",
         "url": "https://hh.ru/vacancy/456",
         "salary": 0,
-        "description": "Без опыта"
-    }
+        "description": "Без опыта",
+    },
 ]
 
-@pytest.mark.parametrize("HandlerClass, filename", [
-    (JSONHandler, "test_vacancies.json"),
-    (CSVHandler, "test_vacancies.csv"),
-    (XLSXHandler, "test_vacancies.xlsx"),
-    (TXTHandler, "test_vacancies.txt"),
-])
-def test_file_handler_add_get_delete(tmp_path, HandlerClass, filename):
+
+@pytest.mark.parametrize(
+    "HandlerClass, filename",
+    [
+        (JSONHandler, "test_vacancies.json"),
+        (CSVHandler, "test_vacancies.csv"),
+        (XLSXHandler, "test_vacancies.xlsx"),
+        (TXTHandler, "test_vacancies.txt"),
+    ],
+)
+def test_file_handler_add_get_delete(tmp_path: Path, HandlerClass: Type[FileHandler], filename: str) -> None:
     file_path = tmp_path / filename
     handler = HandlerClass(str(file_path))
 

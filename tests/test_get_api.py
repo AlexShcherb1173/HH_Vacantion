@@ -6,16 +6,17 @@
 # Ошибка в get_vacancies() при статусе 404.
 # В тесте test_get_vacancies_success используется фикстура вместо хардкода.
 
-import sys
-import os
+
+from typing import Any
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
+
 from src.get_api import HHAPI, VacancyAPI
 
 
 @pytest.fixture
-def fake_vacancies():
+def fake_vacancies() -> list[dict[str, Any]]:
     """Фикстура с тестовыми вакансиями."""
     return [
         {
@@ -33,14 +34,14 @@ def fake_vacancies():
     ]
 
 
-def test_vacancyapi_is_abstract():
+def test_vacancyapi_is_abstract() -> None:
     """Проверяем, что VacancyAPI нельзя создать напрямую."""
     with pytest.raises(TypeError):
         _ = VacancyAPI()
 
 
-@patch("get_api.requests.get")
-def test_connect_success(mock_get):
+@patch("src.get_api.requests.get")
+def test_connect_success(mock_get: MagicMock) -> None:
     """Проверка успешного подключения к API."""
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -50,11 +51,11 @@ def test_connect_success(mock_get):
     hh = HHAPI()
     response = hh._connect()
     assert response.status_code == 200
-    mock_get.assert_called_once_with(hh._HHAPI__base_url, timeout=10)
+    mock_get.assert_called_once_with(hh._base_url, timeout=10)
 
 
-@patch("get_api.requests.get")
-def test_connect_failure_status_code(mock_get):
+@patch("src.get_api.requests.get")
+def test_connect_failure_status_code(mock_get: MagicMock) -> None:
     """Проверяем, что при плохом статусе выбрасывается ошибка."""
     mock_response = MagicMock()
     mock_response.status_code = 500
@@ -66,8 +67,8 @@ def test_connect_failure_status_code(mock_get):
         hh._connect()
 
 
-@patch("get_api.requests.get")
-def test_get_vacancies_success(mock_get, fake_vacancies):
+@patch("src.get_api.requests.get")
+def test_get_vacancies_success(mock_get: MagicMock, fake_vacancies: list[dict[str, Any]]) -> None:
     """Проверка получения вакансий по ключевому слову."""
     # Первый вызов — _connect()
     mock_response_connect = MagicMock()
@@ -90,8 +91,8 @@ def test_get_vacancies_success(mock_get, fake_vacancies):
     assert vacancies[1]["employer"]["name"] == "AI Inc"
 
 
-@patch("get_api.requests.get")
-def test_get_vacancies_bad_status_code(mock_get):
+@patch("src.get_api.requests.get")
+def test_get_vacancies_bad_status_code(mock_get: MagicMock) -> None:
     """Проверка ошибки при плохом статусе ответа в get_vacancies."""
     mock_response_connect = MagicMock()
     mock_response_connect.status_code = 200

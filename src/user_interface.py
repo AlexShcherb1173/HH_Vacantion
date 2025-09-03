@@ -8,11 +8,11 @@
 # Вакансии сохраняются в JSON файл в папку data. (расширяемо для CSV/XLSX/TXT).
 
 import os
-from typing import List
+from typing import List, Optional
+
 from src.get_api import HHAPI
 from src.vacancy_get import Vacancy
 from src.work_files import JSONHandler
-from datetime import datetime
 
 # Папка для хранения JSON файлов
 DATA_FOLDER = os.path.join(os.getcwd(), "data")
@@ -24,12 +24,12 @@ def convert_api_to_vacancy(item: dict) -> Vacancy:
     salary = salary_data.get("from") if salary_data else None
 
     return Vacancy(
-        title=item.get("name"),
+        title=item.get("name") or "",
         location=item.get("area", {}).get("name", "Не указано"),
         published_at=item.get("published_at"),
         url=item.get("alternate_url"),
         salary=salary,
-        description=item.get("snippet", {}).get("requirement", "Описание не указано")
+        description=item.get("snippet", {}).get("requirement", "Описание не указано"),
     )
 
 
@@ -45,17 +45,21 @@ def display_vacancy(vac: Vacancy) -> None:
 
 def user_interaction() -> None:
     """Функция взаимодействия с пользователем.
-        - Запрос вакансий
-        - Топ N по зарплате
-        - Фильтрация по ключевым словам и локации"""
+    - Запрос вакансий
+    - Топ N по зарплате
+    - Фильтрация по ключевым словам и локации"""
     print("=== Платформа: HeadHunter ===")
     search_query = input("Введите поисковый запрос: ").strip()
     if not search_query:
         print("Ключевое слово не может быть пустым")
         return
 
-    top_n = input("Введите количество вакансий для вывода в топ N (оставьте пустым для всех): ").strip()
-    top_n = int(top_n) if top_n.isdigit() else None
+    top_n_input: str = input("Введите количество вакансий для вывода в топ N (оставьте пустым для всех): ").strip()
+    top_n: Optional[int]
+    if top_n_input.isdigit():
+        top_n = int(top_n_input)
+    else:
+        top_n = None  # значит — показываем все
 
     filter_words = input("Введите ключевые слова для фильтрации вакансий (через пробел): ").split()
     location_filter = input("Введите локацию для фильтрации вакансий (оставьте пустым для пропуска): ").strip()
