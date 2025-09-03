@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
+from config import DATA_FOLDER
 from src.services import remove_duplicates
 
 
@@ -27,7 +28,10 @@ class FileHandler(ABC):
 
     def __init__(self, filename: Optional[str] = None) -> None:
         """:param filename: Имя файла"""
-        self.__filename = filename or "data/vacancies_data"
+        if filename is None:
+            filename = "data/vacancies_data"
+
+        self.__filename: Path = DATA_FOLDER / filename
         Path(self.__filename).parent.mkdir(exist_ok=True, parents=True)
 
     @abstractmethod
@@ -46,7 +50,7 @@ class FileHandler(ABC):
     """Удаляет вакансии из файла по критериям."""
 
     @property
-    def filename(self) -> str:
+    def filename(self) -> Path:
         return self.__filename
 
 
